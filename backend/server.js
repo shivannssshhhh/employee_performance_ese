@@ -6,7 +6,7 @@ require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
 const app = express();
 app.use(cors({
-  origin: ['http://localhost:3000', 'https://ai-candidate-system-mu.vercel.app'],
+  origin: ['http://localhost:3000', 'https://ai-candidate-system-mu.vercel.app', 'https://employee-performance-ese.vercel.app'],
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true
 }));
