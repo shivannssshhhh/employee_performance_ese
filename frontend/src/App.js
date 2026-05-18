@@ -1,44 +1,91 @@
-import React, { useState } from 'react';
-import CandidateForm from './components/CandidateForm';
-import CandidateList from './components/CandidateList';
-import MatchForm from './components/MatchForm';
-import MatchResults from './components/MatchResults';
-import AIMatch from './components/AIMatch';
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom';
+import EmployeeForm from './components/EmployeeForm';
+import EmployeeList from './components/EmployeeList';
+import SearchFilter from './components/SearchFilter';
+import AIRecommendation from './components/AIRecommendation';
+import Login from './components/Login';
+import Signup from './components/Signup';
+import ProtectedRoute from './components/ProtectedRoute';
+import axios from 'axios';
 import './App.css';
 
-function App() {
-  const [activeTab, setActiveTab] = useState('add');
-  const [matchResults, setMatchResults] = useState(null);
-  const [refreshList, setRefreshList] = useState(false);
+function MainLayout({ setAuth }) {
+  const [employees, setEmployees] = useState([]);
+  const navigate = useNavigate();
 
-  const handleCandidateAdded = () => {
-    setRefreshList(prev => !prev);
+  const fetchEmployees = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.get(`${process.env.REACT_APP_API_URL || 'http://localhost:5001'}/api/employees`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setEmployees(res.data);
+    } catch (err) {
+      console.error(err);
+      if (err.response?.status === 401) {
+        setAuth(false);
+        localStorage.removeItem('token');
+      }
+    }
+  };
+
+  useEffect(() => {
+    fetchEmployees();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    setAuth(false);
+    navigate('/login');
   };
 
   return (
-    <div className="app">
-      <header className="header">
-        <h1>Candidate Shortlisting System</h1>
-        <p>AI-powered candidate matching and ranking</p>
-      </header>
+    <>
       <nav className="nav">
-        <button className={activeTab === 'add' ? 'active' : ''} onClick={() => setActiveTab('add')}>Add Candidate</button>
-        <button className={activeTab === 'list' ? 'active' : ''} onClick={() => setActiveTab('list')}>All Candidates</button>
-        <button className={activeTab === 'match' ? 'active' : ''} onClick={() => setActiveTab('match')}>Basic Match</button>
-        <button className={activeTab === 'ai' ? 'active' : ''} onClick={() => setActiveTab('ai')}>AI Match</button>
+        <Link to="/"><button>Dashboard</button></Link>
+        <Link to="/add"><button>Add Employee</button></Link>
+        <Link to="/ai"><button>AI Recommendations</button></Link>
+        <button onClick={handleLogout} className="danger-btn">Logout</button>
       </nav>
       <main className="main">
-        {activeTab === 'add' && <CandidateForm onAdded={handleCandidateAdded} />}
-        {activeTab === 'list' && <CandidateList refresh={refreshList} />}
-        {activeTab === 'match' && (
-          <>
-            <MatchForm setMatchResults={setMatchResults} />
-            {matchResults && <MatchResults results={matchResults} />}
-          </>
-        )}
-        {activeTab === 'ai' && <AIMatch />}
+        <Routes>
+          <Route path="/" element={
+            <>
+              <SearchFilter setEmployees={setEmployees} />
+              <EmployeeList employees={employees} fetchEmployees={fetchEmployees} />
+            </>
+          } />
+          <Route path="/add" element={<EmployeeForm fetchEmployees={fetchEmployees} />} />
+          <Route path="/ai" element={<AIRecommendation />} />
+        </Routes>
       </main>
-    </div>
+    </>
+  );
+}
+
+function App() {
+  const [isAuth, setAuth] = useState(!!localStorage.getItem('token'));
+
+  return (
+    <Router>
+      <div className="app">
+        <header className="header">
+          <h1>Employee Performance AI</h1>
+          <p>AI-driven analytics and recommendations</p>
+        </header>
+        <Routes>
+          <Route path="/login" element={<Login setAuth={setAuth} />} />
+          <Route path="/signup" element={<Signup setAuth={setAuth} />} />
+          <Route path="/*" element={
+            <ProtectedRoute isAuth={isAuth}>
+              <MainLayout setAuth={setAuth} />
+            </ProtectedRoute>
+          } />
+        </Routes>
+      </div>
+    </Router>
   );
 }
 

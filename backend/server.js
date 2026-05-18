@@ -11,8 +11,8 @@ app.use(cors({
   credentials: true
 }));
 app.use(express.json());
-app.use('/api/candidates', require('./routes/candidates'));
-app.use('/api/match', require('./routes/match'));
+app.use('/api/auth', require('./routes/auth'));
+app.use('/api/employees', require('./routes/employees'));
 app.use('/api/ai', require('./routes/ai'));
 
 // Root route for API health check
